@@ -6,15 +6,24 @@ using System.Collections.Generic;
 namespace BotsPoC
 {
 
+    public enum OpCode
+    {
+        MOVA,
+        MOVB,
+        LOADA,
+        LOADB,
+        STORA,
+        STORB,
+    }
 
     public struct Instruction
     {
-        public int Code;
-
-        public static Instruction Create(int code)
+        public uint OpCode;
+        public uint Val;
+        public static Instruction Create(int opCode)
         {
             var i = new Instruction();
-            i.Code = code;
+            i.OpCode = opCode;
 
             return i;
         }
@@ -29,6 +38,8 @@ namespace BotsPoC
         public bool T;
         public Instruction[] Code;
         public int CodePtr;
+        private Dictionary<string, int> opCodes;
+        private Dictionary<int, Action> opCodeHandlers;
 
 
         public Processor()
@@ -55,6 +66,17 @@ namespace BotsPoC
                 return;
 
             this.CodePtr++;
+        }
+
+        public void RegisterStandard()
+        {
+            Register("jmp", 0, Jmp);
+        } 
+
+        public void Register(string name, int opCode, Action handler) 
+        {
+            this.opCodes.Add(name, opCode);
+            this.opCodeHandlers.Add(opCode, handler);
         }
 
         public void Jmp()
