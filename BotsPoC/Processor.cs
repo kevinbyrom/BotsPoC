@@ -6,44 +6,76 @@ using System.Collections.Generic;
 namespace BotsPoC
 {
 
-    public enum OpCode
+    public enum Registers
     {
-        MOVA,
-        MOVB,
-        LOADA,
-        LOADB,
-        STORA,
-        STORB,
+        AX,
+        BX,
+        CX,
+        DX
+    }
+
+    public enum OpCode : int
+    {
+        SET = 0,
+        MOV,
+        LOAD,
+        STOR,
+        PUSH,
+        POP,
+        OUT,
+        OUTI,
+        INP,
+        INPI,
+        ADD,
+        ADDI,
+        SUB,
+        SUBI,
+        MUL,
+        MULI,
+        DIV,
+        DIVI,
+        TEQ,
+        TEG,
+        TEL,
+        TG,
+        TL,
+        JMP,
+        TJMP,
+        FJMP,
+        BR,
+        TBR,
+        FBR,
+        RET
     }
 
     public struct Instruction
     {
         public uint OpCode;
-        public uint Val;
-        public static Instruction Create(int opCode)
-        {
-            var i = new Instruction();
-            i.OpCode = opCode;
+        public uint Val1;
+        public uint Val2;
 
-            return i;
+        public static Instruction Create(uint opCode, uint val = 0)
+        {
+            return new Instruction() { OpCode = opCode, Val = val };
         }
     }
 
 
     public class Processor
     {
-        public double AX;
-        public double BX;
-        public string SX;
+        const int MAX_REGISTERS = 4;
+        public uint[] Register = new uint[4];
         public bool T;
         public Instruction[] Code;
-        public int CodePtr;
-        private Dictionary<string, int> opCodes;
-        private Dictionary<int, Action> opCodeHandlers;
+        public uint CodePtr;
+        public Stack<uint> Stack;
+
+        private Action<uint, uint>[] ops;
 
 
         public Processor()
         {
+            RegisterOpHandlers();
         }
 
         public void Load(Instruction[] code)
@@ -52,7 +84,7 @@ namespace BotsPoC
             this.Code = code;
         }
 
-        public void Execute()
+        public void Run()
         {
             while (this.CodePtr < this.Code.Length)
             {
@@ -68,33 +100,93 @@ namespace BotsPoC
             this.CodePtr++;
         }
 
-        public void RegisterStandard()
+        public void Execute(Instruction instr)
         {
-            Register("jmp", 0, Jmp);
-        } 
-
-        public void Register(string name, int opCode, Action handler) 
-        {
-            this.opCodes.Add(name, opCode);
-            this.opCodeHandlers.Add(opCode, handler);
+            var handler = this.ops[instr.OpCode];
+            handler(instr.Val1, instr.Val2);
         }
 
-        public void Jmp()
+        private void RegisterOpHandlers()
         {
-            int pos = (int)this.AX;
+            this.ops[(int)OpCode.JMP] = Jmp;
+            this.ops[(int)OpCode.MOV] = Move;
+            //            this.ops.Add(OpCode.MOV, Jmp);
 
-            if (pos >= this.Code.Length)
+            STOR,
+        PUSH,
+        POP,
+        OUT,
+        OUTI,
+        INP,
+        INPI,
+        ADD,
+        ADDI,
+        SUB,
+        SUBI,
+        MUL,
+        MULI,
+        DIV,
+        DIVI,
+        TEQ,
+        TEG,
+        TEL,
+        TG,
+        TL,
+        JMP,
+        TJMP,
+        FJMP,
+        BR,
+        TBR,
+        FBR,
+        RET
+        } 
+        
+        public void Set(uint val1, uint val2)
+        {
+            this.Register[val1] = val2;
+        }
+        
+        public void Move(uint val1, uint val2)
+        {
+            this.Register[val1] = this.Register[val2];
+        }
+
+        public void Load(uint val1, uint val2)
+        {
+            // Grab memory addressed at D and put into specified reg
+        }
+
+        public void Store(uint val1, uint val2)
+        {
+            // Grab value at specified reg and store at memory addressed at D
+        }
+
+        public void Push(uint val1, uint val2)
+        {
+            // Push value to stack from specified register
+
+            this.Stack.Push(this.Register[val1]);
+        }
+
+        public void Pop(uint val1, uint val2)
+        {
+            // Pop value from stack and store at specified register
+
+            this.Register[val1] = this.Stack.Pop();
+        }
+
+
+
+        public void Jump(uint val1, uint val2)
+        {
+            if (val1 >= this.Code.Length)
                 throw new Exception();
 
-            this.CodePtr = (int)this.AX;
+            this.CodePtr = val1;
         }
 
         public void Test()
         {
-            if (this.AX == this.BX)
-                this.T = true;
-            else
-                this.T = false;
         }
     }
 
